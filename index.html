@@ -172,21 +172,38 @@
     }
 
 
-    async function checkCampingQR(qrCode) {
+   async function checkCampingQR(qrCode) {
 
-      scanning = false;
+  scanning = false;
 
-      showResult("CHECKING...");
+  showResult("CHECKING...");
 
-      await stopScanner();
+  // Completely stop the camera before leaving the page.
+  if (scanner) {
 
-      const url =
-        CAMPING_SCRIPT_URL +
-        "?action=check&ticket=" +
-        encodeURIComponent(qrCode);
+    try {
+      await scanner.stop();
+    } catch (e) {}
 
-      window.location.href = url;
-    }
+    try {
+      await scanner.clear();
+    } catch (e) {}
+
+    scanner = null;
+  }
+
+  // Give the phone time to release the camera.
+  await new Promise(function(resolve) {
+    setTimeout(resolve, 2000);
+  });
+
+  const url =
+    CAMPING_SCRIPT_URL +
+    "?action=check&ticket=" +
+    encodeURIComponent(qrCode);
+
+  window.location.href = url;
+}
 
 
     function showResult(message) {
