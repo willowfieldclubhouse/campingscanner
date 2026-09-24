@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,7 @@
 
   <title>Camping Scanner</title>
 
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
     body {
@@ -26,6 +27,8 @@
       max-width: 500px;
       margin: 20px auto;
       background: white;
+      border-radius: 10px;
+      overflow: hidden;
     }
 
     #result {
@@ -48,11 +51,6 @@
       color: white;
       margin: 15px auto;
       display: block;
-    }
-
-    #startCamera {
-      font-size: 22px;
-      padding: 18px 35px;
     }
 
     .hidden {
@@ -79,17 +77,14 @@
       "https://script.google.com/macros/s/AKfycbx5Cjdd1dWc8Afr5nzJQfE8q6pjRZP8ef8_2aUN77s8GoBw_hBAYutGaaUsG51dJ4-YKQ/exec";
 
     let scanner = null;
-    let scanning = false;
-    let starting = false;
+    let hasScanned = false;
 
 
     async function startScanner() {
 
-      if (starting || scanning) {
+      if (scanner) {
         return;
       }
-
-      starting = true;
 
       document
         .getElementById("startCamera")
@@ -99,36 +94,13 @@
         .getElementById("result")
         .classList.add("hidden");
 
-
-      /*
-       * Make sure any previous scanner is completely stopped.
-       */
-
-      if (scanner) {
-
-        try {
-          await scanner.stop();
-        } catch (e) {}
-
-        try {
-          await scanner.clear();
-        } catch (e) {}
-
-        scanner = null;
-      }
-
-
-      /*
-       * Create a completely fresh scanner.
-       */
+      hasScanned = false;
 
       scanner = new Html5Qrcode("reader");
-
 
       try {
 
         await scanner.start(
-
           { facingMode: "environment" },
 
           {
@@ -139,30 +111,28 @@
             }
           },
 
-          function(qrCodeMessage) {
+          function(decodedText) {
 
-            if (!scanning) {
+            if (hasScanned) {
               return;
             }
 
-            scanning = false;
+            hasScanned = true;
 
-            checkCampingQR(qrCodeMessage);
+            checkCampingQR(decodedText);
           },
 
           function(errorMessage) {
-            // Normal scanning errors are ignored.
+            // Ignore normal QR scanning errors.
           }
 
         );
 
-        scanning = true;
-        starting = false;
+      } catch (error) {
 
-      } catch (err) {
+        console.log(error);
 
-        scanning = false;
-        starting = false;
+        scanner = null;
 
         document
           .getElementById("startCamera")
@@ -170,7 +140,7 @@
 
         showResult(
           "CAMERA ERROR<br><br>" +
-          "Please tap START CAMERA and try again."
+          "Please check that Firefox has camera permission."
         );
       }
     }
@@ -178,14 +148,7 @@
 
     async function checkCampingQR(qrCode) {
 
-      scanning = false;
-
       showResult("CHECKING...");
-
-
-      /*
-       * Stop the camera before leaving the scanner.
-       */
 
       if (scanner) {
 
@@ -200,21 +163,10 @@
         scanner = null;
       }
 
-
-      /*
-       * Give the phone time to release the camera.
-       */
-
-      await new Promise(function(resolve) {
-        setTimeout(resolve, 1000);
-      });
-
-
       const url =
         CAMPING_SCRIPT_URL +
         "?action=check&ticket=" +
         encodeURIComponent(qrCode);
-
 
       window.location.href = url;
     }
@@ -234,3 +186,4 @@
 
 </body>
 </html>
+```
