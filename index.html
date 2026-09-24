@@ -18,7 +18,7 @@
     }
 
     h1 {
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
 
     #reader {
@@ -39,14 +39,20 @@
     }
 
     button {
-      padding: 15px 25px;
-      font-size: 18px;
+      padding: 16px 28px;
+      font-size: 20px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       background: #333;
       color: white;
-      margin-top: 10px;
+      margin: 15px auto;
+      display: block;
+    }
+
+    #startCamera {
+      font-size: 22px;
+      padding: 18px 35px;
     }
 
     .hidden {
@@ -59,13 +65,13 @@
 
   <h1>Camping Scanner</h1>
 
+  <button id="startCamera" onclick="startScanner()">
+    START CAMERA
+  </button>
+
   <div id="reader"></div>
 
   <div id="result" class="hidden"></div>
-
-  <button id="scanAgain" class="hidden" onclick="window.location.reload()">
-  SCAN ANOTHER QR CODE
-</button>
 
   <script>
 
@@ -77,51 +83,47 @@
     let starting = false;
 
 
-    async function stopScanner() {
-
-      scanning = false;
-
-      if (scanner) {
-
-        try {
-          await scanner.stop();
-        } catch (e) {
-          // Camera may already be stopped.
-        }
-
-        try {
-          await scanner.clear();
-        } catch (e) {
-          // Scanner may already be cleared.
-        }
-
-        scanner = null;
-
-        // Give the phone/browser time to release the camera.
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-    }
-
-
     async function startScanner() {
 
-      if (starting) return;
+      if (starting || scanning) {
+        return;
+      }
 
       starting = true;
+
+      document
+        .getElementById("startCamera")
+        .classList.add("hidden");
 
       document
         .getElementById("result")
         .classList.add("hidden");
 
-      document
-        .getElementById("scanAgain")
-        .classList.add("hidden");
+
+      /*
+       * Make sure any previous scanner is completely stopped.
+       */
+
+      if (scanner) {
+
+        try {
+          await scanner.stop();
+        } catch (e) {}
+
+        try {
+          await scanner.clear();
+        } catch (e) {}
+
+        scanner = null;
+      }
 
 
-      await stopScanner();
-
+      /*
+       * Create a completely fresh scanner.
+       */
 
       scanner = new Html5Qrcode("reader");
+
 
       try {
 
@@ -137,17 +139,19 @@
             }
           },
 
-          qrCodeMessage => {
+          function(qrCodeMessage) {
 
-            if (!scanning) return;
+            if (!scanning) {
+              return;
+            }
 
             scanning = false;
 
             checkCampingQR(qrCodeMessage);
           },
 
-          errorMessage => {
-            // Normal QR scanning errors are ignored.
+          function(errorMessage) {
+            // Normal scanning errors are ignored.
           }
 
         );
@@ -160,50 +164,60 @@
         scanning = false;
         starting = false;
 
+        document
+          .getElementById("startCamera")
+          .classList.remove("hidden");
+
         showResult(
           "CAMERA ERROR<br><br>" +
-          "Please allow camera access and try again."
+          "Please tap START CAMERA and try again."
         );
-
-        document
-          .getElementById("scanAgain")
-          .classList.remove("hidden");
       }
     }
 
 
-   async function checkCampingQR(qrCode) {
+    async function checkCampingQR(qrCode) {
 
-  scanning = false;
+      scanning = false;
 
-  showResult("CHECKING...");
+      showResult("CHECKING...");
 
-  // Completely stop the camera before leaving the page.
-  if (scanner) {
 
-    try {
-      await scanner.stop();
-    } catch (e) {}
+      /*
+       * Stop the camera before leaving the scanner.
+       */
 
-    try {
-      await scanner.clear();
-    } catch (e) {}
+      if (scanner) {
 
-    scanner = null;
-  }
+        try {
+          await scanner.stop();
+        } catch (e) {}
 
-  // Give the phone time to release the camera.
-  await new Promise(function(resolve) {
-    setTimeout(resolve, 2000);
-  });
+        try {
+          await scanner.clear();
+        } catch (e) {}
 
-  const url =
-    CAMPING_SCRIPT_URL +
-    "?action=check&ticket=" +
-    encodeURIComponent(qrCode);
+        scanner = null;
+      }
 
-  window.location.href = url;
-}
+
+      /*
+       * Give the phone time to release the camera.
+       */
+
+      await new Promise(function(resolve) {
+        setTimeout(resolve, 1000);
+      });
+
+
+      const url =
+        CAMPING_SCRIPT_URL +
+        "?action=check&ticket=" +
+        encodeURIComponent(qrCode);
+
+
+      window.location.href = url;
+    }
 
 
     function showResult(message) {
@@ -215,17 +229,6 @@
 
       result.classList.remove("hidden");
     }
-
-
-    window.addEventListener("load", function() {
-
-  // Give the browser a moment to initialise
-  // the camera after returning to the scanner.
-  setTimeout(function() {
-    startScanner();
-  }, 1200);
-
-});
 
   </script>
 
