@@ -1,0 +1,154 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Camping Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 20px auto;
+      background: white;
+    }
+
+    #result {
+      margin: 20px auto;
+      padding: 20px;
+      max-width: 500px;
+      border-radius: 10px;
+      background: white;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 15px 25px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #333;
+      color: white;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Camping Scanner</h1>
+
+  <div id="reader"></div>
+
+  <div id="result" class="hidden"></div>
+
+  <button id="scanAgain" class="hidden" onclick="startScanner()">
+    SCAN ANOTHER QR CODE
+  </button>
+
+  <script>
+    // IMPORTANT:
+    // Replace this with the Web App URL of the NEW camping Apps Script.
+    const CAMPING_SCRIPT_URL =
+      "PASTE-YOUR-CAMPING-APPS-SCRIPT-URL-HERE";
+
+    let scanner = null;
+    let scanning = false;
+
+    function startScanner() {
+
+      document.getElementById("result").classList.add("hidden");
+      document.getElementById("scanAgain").classList.add("hidden");
+
+      if (scanner) {
+        try {
+          scanner.clear();
+        } catch (e) {}
+      }
+
+      scanner = new Html5Qrcode("reader");
+      scanning = true;
+
+      scanner.start(
+        { facingMode: "environment" },
+
+        {
+          fps: 10,
+          qrbox: {
+            width: 250,
+            height: 250
+          }
+        },
+
+        qrCodeMessage => {
+
+          if (!scanning) return;
+
+          scanning = false;
+
+          scanner.stop().catch(() => {});
+
+          checkCampingQR(qrCodeMessage);
+        },
+
+        errorMessage => {
+          // Ignore normal scanning errors.
+        }
+      ).catch(err => {
+
+        scanning = false;
+
+        showResult(
+          "CAMERA ERROR<br><br>" +
+          "Please allow camera access and reload the page."
+        );
+      });
+    }
+
+    function checkCampingQR(qrCode) {
+
+      showResult("CHECKING...");
+
+      const url =
+        CAMPING_SCRIPT_URL +
+        "?action=check&ticket=" +
+        encodeURIComponent(qrCode);
+
+      window.location.href = url;
+    }
+
+    function showResult(message) {
+
+      const result = document.getElementById("result");
+
+      result.innerHTML = message;
+      result.classList.remove("hidden");
+    }
+
+    window.onload = startScanner;
+  </script>
+
+</body>
+</html>
+```
